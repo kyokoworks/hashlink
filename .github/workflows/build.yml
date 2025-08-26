@@ -23,7 +23,7 @@ jobs:
       matrix:
         target: [linux, darwin, windows]
         architecture: [32, 64, arm64]
-        build_system: [make, cmake, vs2019]
+        build_system: [cmake]
 
         include:
           - target: linux
@@ -46,8 +46,8 @@ jobs:
           - build_system: cmake
             cmake_configuration: RelWithDebInfo
 
-          - build_system: vs2019
-            msbuild_configuration: Release
+          # - build_system: vs2019
+          #   msbuild_configuration: Release
 
           - target: windows
             runner: windows-2022 # has VS 2022 preinstalled which supports PlatformToolset <= v142, WindowsTargetPlatformVersion 10
@@ -115,14 +115,8 @@ jobs:
             echo "MARCH=64" >> $GITHUB_ENV
             sudo apt-get update -y
             sudo apt-get install --no-install-recommends -y \
-              libmbedtls-dev \
-              libopenal-dev \
-              libpng-dev \
               libsdl2-dev \
-              libturbojpeg-dev \
-              libuv1-dev \
-              libvorbis-dev \
-              libsqlite3-dev
+              libturbojpeg-dev
             ;;
 
           darwin*)
@@ -132,10 +126,8 @@ jobs:
 
           windows*)
             curl -fsSL --retry 3 --retry-delay 5 -o /tmp/sdl.zip https://www.libsdl.org/release/SDL2-devel-2.30.2-VC.zip
-            curl -fsSL --retry 3 --retry-delay 5 -o /tmp/openal.zip https://github.com/kcat/openal-soft/releases/download/1.23.1/openal-soft-1.23.1-bin.zip
             curl -fsSL --retry 3 --retry-delay 5 -o /tmp/ffmpeg.zip ${{ matrix.ffmpeg_url }}
             7z x /tmp/sdl.zip    -oinclude; mv include/SDL2*   include/sdl
-            7z x /tmp/openal.zip -oinclude; mv include/openal* include/openal
             7z x /tmp/ffmpeg.zip -oinclude; mv include/ffmpeg* include/ffmpeg
             ;;
         esac

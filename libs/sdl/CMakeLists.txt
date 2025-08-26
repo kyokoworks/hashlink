@@ -3,26 +3,40 @@ add_library(sdl.hdll
     gl.c
 )
 
-if (ANDROID)
+if (ANDROID OR UNIX)
+    set(SDL2_CMAKE_ARGS 
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+        -DBUILD_SHARED_LIBS=OFF
+        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+    )
+    if(ANDROID)
+        list(APPEND SDL2_CMAKE_ARGS
+            -DANDROID_PLATFORM=${ANDROID_PLATFORM}
+            -DANDROID_ABI=${CMAKE_ANDROID_ARCH_ABI}
+        )    
+    endif()
+
 	ExternalProject_Add(sdl2-project
         URL https://github.com/libsdl-org/SDL/releases/download/release-2.32.8/SDL2-2.32.8.tar.gz
         URL_HASH SHA256=0ca83e9c9b31e18288c7ec811108e58bac1f1bb5ec6577ad386830eac51c787e
-        CMAKE_ARGS
-            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+        CMAKE_ARGS 
             -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-            -DANDROID_PLATFORM=${ANDROID_PLATFORM}
-            -DANDROID_ABI=${CMAKE_ANDROID_ARCH_ABI}
+            ${SDL2_CMAKE_ARGS}
         # INSTALL_BYPRODUCTS in CMake 3.26+
-        BUILD_BYPRODUCTS <INSTALL_DIR>/${CMAKE_INSTALL_LIBDIR}/libSDL2.so
+        INSTALL_BYPRODUCTS <INSTALL_DIR>/${CMAKE_INSTALL_LIBDIR}/libSDL2.a
         DOWNLOAD_EXTRACT_TIMESTAMP true
     )
     ExternalProject_Get_Property(sdl2-project INSTALL_DIR)
 
     add_library(sdl2 SHARED IMPORTED)
-    set_target_properties(sdl2 PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/libSDL2.so)
+    set_target_properties(sdl2 PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/libSDL2.a)
 
-    set(SDL2_INCLUDE_DIR ${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/SDL2)
+    set(SDL2_INCLUDE_DIR ${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR}/SDL2 PARENT_SCOPE)
     set(SDL2_LIBRARY sdl2)
+
+    target_include_directories(sdl2 INTERFACE ${SDL2_INCLUDE_DIR})
 
     add_dependencies(sdl2 sdl2-project)
 else()
@@ -35,24 +49,26 @@ endif()
 
 set_as_hdll(sdl)
 target_include_directories(sdl.hdll
-    PRIVATE
+    PUBLIC
     ${SDL2_INCLUDE_DIR}
     ${INCLUDES_BASE_DIR}/gl
 )
 target_link_libraries(sdl.hdll
+    PUBLIC
     libhl
     ${SDL2_LIBRARY}
 )
 
 if(WIN32)
     target_link_libraries(sdl.hdll
+        PRIVATE
         winmm
         opengl32
     )
 endif()
 
 if(ANDROID)
-    target_link_libraries(sdl.hdll m OpenSLES dl log android GLESv1_CM GLESv2 EGL GLESv3)
+    target_link_libraries(sdl.hdll PRIVATE m OpenSLES dl log android GLESv1_CM GLESv2 EGL GLESv3)
 endif()
 
 if((APPLE OR UNIX) AND NOT ANDROID)
@@ -62,7 +78,7 @@ if((APPLE OR UNIX) AND NOT ANDROID)
         ${OPENGL_INCLUDE_DIR}
     )
     target_link_libraries(sdl.hdll
-        libhl
+        PRIVATE
         ${OPENGL_gl_LIBRARY}
     )
 endif()

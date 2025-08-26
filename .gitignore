@@ -31,6 +31,7 @@ ReleaseStatic
 /other/benchs/cpp
 /other/benchs/flashout.txt
 
+/.haxelib
 /bin*
 /build*
 /other/memory/*.dump

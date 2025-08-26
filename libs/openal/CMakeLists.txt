@@ -1,68 +1,24 @@
-add_library(openal.hdll openal.c)
+add_library(openal.hdll openal.c mojoal.c)
+add_dependencies(openal.hdll sdl.hdll)
 
-option(WITH_STATIC_OPENAL "Link openal.hdll to static openal-soft" OFF)
-
-if (WITH_STATIC_OPENAL)
-    target_compile_definitions(openal.hdll PRIVATE OPENAL_STATIC)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
-endif()
-
-if(WIN32)
-    if(MSVC)
-        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
-    endif()
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        find_library(OPENAL_LIBRARY OpenAL32 PATHS ${INCLUDES_BASE_DIR}/openal/libs/Win64)
-    else()
-        find_library(OPENAL_LIBRARY OpenAL32 PATHS ${INCLUDES_BASE_DIR}/openal/libs/Win32)
-    endif()
-
-    set(OPENAL_INCLUDE_DIR ${INCLUDES_BASE_DIR}/openal/include)
-elseif(ANDROID)
-    if (WITH_STATIC_OPENAL)
-        set(OPENAL_LIBTYPE STATIC)
-        set(OPENAL_LIBSUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
-    else()
-        set(OPENAL_LIBTYPE SHARED)
-        set(OPENAL_LIBSUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
-    endif()
-	ExternalProject_Add(openal-soft
-        URL https://github.com/kcat/openal-soft/archive/refs/tags/1.24.3.tar.gz
-        URL_HASH SHA256=7e1fecdeb45e7f78722b776c5cf30bd33934b961d7fd2a11e0494e064cc631ce
-        CMAKE_ARGS
-            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-            -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-            -DANDROID_PLATFORM=${ANDROID_PLATFORM}
-            -DANDROID_ABI=${CMAKE_ANDROID_ARCH_ABI}
-            -DLIBTYPE=${OPENAL_LIBTYPE}
-        # INSTALL_BYPRODUCTS in CMake 3.26+
-        BUILD_BYPRODUCTS <INSTALL_DIR>/${CMAKE_INSTALL_LIBDIR}/libopenal${OPENAL_LIBSUFFIX}
-        DOWNLOAD_EXTRACT_TIMESTAMP true
-    )
-    ExternalProject_Get_Property(openal-soft INSTALL_DIR)
-
-    add_library(openal SHARED IMPORTED)
-    set_target_properties(openal PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/libopenal${OPENAL_LIBSUFFIX})
-
-    set(OPENAL_INCLUDE_DIR ${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR})
-    set(OPENAL_LIBRARY openal)
-
-    add_dependencies(openal openal-soft)
-else()
-    find_package(OpenAL REQUIRED)
-endif()
+# option(WITH_STATIC_OPENAL "Link openal.hdll to static openal-soft" OFF) # GPL WARNING
 
 set_as_hdll(openal)
 
+message(STATUS "sdl2 include dir: ${SDL2_INCLUDE_DIR}")
+
 target_link_libraries(openal.hdll
     libhl
-    ${OPENAL_LIBRARY}
+    # ${OPENAL_LIBRARY}
+    ${SDL2_LIBRARY}
 )
 
 target_include_directories(openal.hdll
     PRIVATE
-    ${OPENAL_INCLUDE_DIR}
+    # ${OPENAL_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/AL
+    ${SDL2_INCLUDE_DIR}
 )
 
 install(

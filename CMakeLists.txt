@@ -208,6 +208,20 @@ if(BUILD_TESTING)
         HAXE_COMPILER
         haxe
     )
+    find_program(
+        HAXELIB_COMMAND
+        haxelib
+    )
+
+    execute_process(
+        COMMAND ${HAXELIB_COMMAND} newrepo
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
+    execute_process(
+        COMMAND ${HAXELIB_COMMAND} dev hashlink ${CMAKE_SOURCE_DIR}/other/haxelib
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
 
     if("${CMAKE_GENERATOR_PLATFORM}" STREQUAL "Win32")
         SET(HAXE_FLAGS -D hl-legacy32)

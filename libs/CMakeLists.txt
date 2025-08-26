@@ -15,9 +15,7 @@ function(set_as_hdll target)
     )
 endfunction()
 
-if (ANDROID)
-    include(ExternalProject)
-endif()
+include(ExternalProject)
 
 if(WIN32)
     add_subdirectory(directx)
@@ -30,14 +28,17 @@ endif()
 
 # add_subdirectory(mesa)
 
-option(WITH_OPENAL "Build openal.hdll." ON)
-if(WITH_OPENAL)
-    add_subdirectory(openal)
-endif()
-
 option(WITH_SDL "Build sdl.hdll." ON)
 if(WITH_SDL)
     add_subdirectory(sdl)
+endif()
+
+option(WITH_OPENAL "Build openal.hdll." ON)
+if(WITH_OPENAL)
+    if(NOT WITH_SDL)
+        message(FATAL_ERROR "openal.hdll requires SDL. Please enable WITH_SDL.")
+    endif()
+    add_subdirectory(openal)
 endif()
 
 option(WITH_SQLITE "Build sqlite.hdll." ON)
