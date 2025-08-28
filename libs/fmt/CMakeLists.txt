@@ -116,15 +116,13 @@ target_include_directories(fmt.hdll
 
 target_link_libraries(fmt.hdll
     libhl
-    ${ZLIB_LIBRARIES}
-    ${PNG_LIBRARIES}
     ${TurboJPEG_LIBRARIES}
-    ${OGGVORBIS_LIBRARIES}
 )
 
 target_compile_definitions(fmt.hdll
     PRIVATE
     ${PNG_DEFINITIONS}
+    -DZ_SOLO
 )
 
 install(
