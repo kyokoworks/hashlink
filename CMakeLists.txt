@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.24)
 
 set(HL_VERSION_MAJOR 1)
 set(HL_VERSION_MINOR 16)
@@ -7,11 +7,16 @@ set(HL_VERSION ${HL_VERSION_MAJOR}.${HL_VERSION_MINOR}.${HL_VERSION_PATCH})
 
 cmake_policy(SET CMP0042 NEW)
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if(WIN32)
     set(CMAKE_SYSTEM_VERSION 10.0)
     project(hashlink C CXX) # C++ required for directx
 else()
-    project(hashlink C)
+    project(hashlink C CXX)
 endif()
 
 include(GNUInstallDirs)
@@ -34,9 +39,6 @@ endif()
 list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/other/cmake
 )
-
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # put output in "bin"
 
@@ -334,6 +336,7 @@ if(BUILD_TESTING)
         PRIVATE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test/uvsample
     )
     target_link_libraries(uvsample
+        PRIVATE
         libhl
         uv.hdll
     )

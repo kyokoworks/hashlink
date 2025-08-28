@@ -5,12 +5,10 @@ add_dependencies(openal.hdll sdl.hdll)
 
 set_as_hdll(openal)
 
-message(STATUS "sdl2 include dir: ${SDL2_INCLUDE_DIR}")
-
+find_package(SDL2 REQUIRED)
 target_link_libraries(openal.hdll
     libhl
-    # ${OPENAL_LIBRARY}
-    ${SDL2_LIBRARY}
+    SDL2::SDL2-static
 )
 
 target_include_directories(openal.hdll
@@ -18,8 +16,9 @@ target_include_directories(openal.hdll
     # ${OPENAL_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/AL
-    ${SDL2_INCLUDE_DIR}
 )
+
+target_compile_definitions(openal.hdll PRIVATE -DOPENAL_STATIC)
 
 install(
     TARGETS

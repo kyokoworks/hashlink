@@ -13,7 +13,21 @@ set(PNG_INCLUDE_DIRS ${INCLUDES_BASE_DIR}/png)
 set(VORBIS_INCLUDE_DIR ${INCLUDES_BASE_DIR}/vorbis)
 set(ZLIB_INCLUDE_DIR ${INCLUDES_BASE_DIR}/zlib)
 
-target_sources(fmt.hdll PRIVATE
+add_library(zlib STATIC 
+    ${INCLUDES_BASE_DIR}/zlib/adler32.c
+    ${INCLUDES_BASE_DIR}/zlib/crc32.c
+    ${INCLUDES_BASE_DIR}/zlib/deflate.c
+    ${INCLUDES_BASE_DIR}/zlib/inffast.c
+    ${INCLUDES_BASE_DIR}/zlib/inflate.c
+    ${INCLUDES_BASE_DIR}/zlib/inftrees.c
+    ${INCLUDES_BASE_DIR}/zlib/trees.c
+    ${INCLUDES_BASE_DIR}/zlib/zutil.c
+)
+target_include_directories(zlib PUBLIC ${ZLIB_INCLUDE_DIR})
+target_compile_definitions(zlib PUBLIC -DZ_SOLO)
+set_property(TARGET zlib PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(png STATIC 
     ${INCLUDES_BASE_DIR}/png/png.c
     ${INCLUDES_BASE_DIR}/png/pngerror.c
     ${INCLUDES_BASE_DIR}/png/pngget.c
@@ -29,6 +43,12 @@ target_sources(fmt.hdll PRIVATE
     ${INCLUDES_BASE_DIR}/png/pngwrite.c
     ${INCLUDES_BASE_DIR}/png/pngwtran.c
     ${INCLUDES_BASE_DIR}/png/pngwutil.c
+)
+target_include_directories(png PUBLIC ${PNG_INCLUDE_DIRS})
+target_link_libraries(png PUBLIC zlib)
+set_property(TARGET png PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+add_library(vorbis STATIC
     ${INCLUDES_BASE_DIR}/vorbis/bitrate.c
     ${INCLUDES_BASE_DIR}/vorbis/bitwise.c
     ${INCLUDES_BASE_DIR}/vorbis/block.c
@@ -51,15 +71,9 @@ target_sources(fmt.hdll PRIVATE
     ${INCLUDES_BASE_DIR}/vorbis/synthesis.c
     ${INCLUDES_BASE_DIR}/vorbis/vorbisfile.c
     ${INCLUDES_BASE_DIR}/vorbis/window.c
-    ${INCLUDES_BASE_DIR}/zlib/adler32.c
-    ${INCLUDES_BASE_DIR}/zlib/crc32.c
-    ${INCLUDES_BASE_DIR}/zlib/deflate.c
-    ${INCLUDES_BASE_DIR}/zlib/inffast.c
-    ${INCLUDES_BASE_DIR}/zlib/inflate.c
-    ${INCLUDES_BASE_DIR}/zlib/inftrees.c
-    ${INCLUDES_BASE_DIR}/zlib/trees.c
-    ${INCLUDES_BASE_DIR}/zlib/zutil.c
 )
+target_include_directories(vorbis PUBLIC ${VORBIS_INCLUDE_DIR})
+set_property(TARGET vorbis PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set(TurboJpeg_CMAKE_ARGS
     -DENABLE_SHARED=OFF
@@ -71,15 +85,23 @@ set(TurboJpeg_CMAKE_ARGS
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 )
 
-if (ANDROID)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     # TODO: enable
-    target_compile_definitions(fmt.hdll PRIVATE PNG_ARM_NEON_OPT=0)
+    target_compile_definitions(png PRIVATE PNG_ARM_NEON_OPT=0)
+endif()
+
+if (ANDROID)
     list(APPEND TurboJpeg_CMAKE_ARGS 
         -DANDROID_PLATFORM=${ANDROID_PLATFORM}
         -DANDROID_ABI=${CMAKE_ANDROID_ARCH_ABI}
     )
 endif()
 
+if (MSVC)
+    set(TURBOJPEG_LIB_PATH lib/turbojpeg-static.lib)
+else()
+    set(TURBOJPEG_LIB_PATH libturbojpeg.a)
+endif()
 
 ExternalProject_Add(turbojpeg-project
     URL https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.1.1/libjpeg-turbo-3.1.1.tar.gz
@@ -88,14 +110,14 @@ ExternalProject_Add(turbojpeg-project
         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
         ${TurboJpeg_CMAKE_ARGS}
     # INSTALL_BYPRODUCTS in CMake 3.26+
-    INSTALL_BYPRODUCTS <INSTALL_DIR>/${CMAKE_INSTALL_LIBDIR}/libturbojpeg.a
+    INSTALL_BYPRODUCTS <INSTALL_DIR>/${CMAKE_INSTALL_LIBDIR}/${TURBOJPEG_LIB_PATH}
     DOWNLOAD_EXTRACT_TIMESTAMP true
 )
 
 ExternalProject_Get_Property(turbojpeg-project INSTALL_DIR)
 
 add_library(turbojpeg STATIC IMPORTED)
-set_target_properties(turbojpeg PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/libturbojpeg.a)
+set_target_properties(turbojpeg PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/${TURBOJPEG_LIB_PATH})
 
 set(TurboJPEG_INCLUDE_DIRS ${INSTALL_DIR}/${CMAKE_INSTALL_INCLUDEDIR})
 set(TurboJPEG_LIBRARIES turbojpeg)
@@ -106,23 +128,18 @@ set_as_hdll(fmt)
 
 target_include_directories(fmt.hdll
     PRIVATE
-    ${ZLIB_INCLUDE_DIRS}
-    ${PNG_INCLUDE_DIRS}
     ${TurboJPEG_INCLUDE_DIRS}
-    ${VORBIS_INCLUDE_DIR}
     ${MINIMP3_INCLUDE_DIR}
     ${MIKKTSPACE_INCLUDE_DIR}
 )
 
 target_link_libraries(fmt.hdll
+    PUBLIC
     libhl
     ${TurboJPEG_LIBRARIES}
-)
-
-target_compile_definitions(fmt.hdll
-    PRIVATE
-    ${PNG_DEFINITIONS}
-    -DZ_SOLO
+    zlib
+    png
+    vorbis
 )
 
 install(
